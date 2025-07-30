@@ -1,0 +1,158 @@
+fix_seed: 0
+checkpoints_every: 128
+save_checkpoint_metric: rpc   #todo 1
+tensorboard_log: True
+result_path: /mnt/pixstor/xudong-lab/yehan/Multi-classificatioin/results/13_ptm/student/splm+task_token(full_sequence)/distill_1/round_1  #todo 2
+  #./results/protein sequence/pho_s/teacher/predefined_prompt_s_plm_average/s_plm/CNN/rpc_savecheckpoint   #todo 2
+#protein sequence  #predefined_prompt_500  #lora  #CNN
+resume:
+  enable: True #True
+  resume_path: pretrained_model/checkpoint_0280000_gvp.pth   #pretrained_model/best_model.pth
+#    /mnt/pixstor/xudong-lab/yehan/Multi-classificatioin/results/13_ptm/student/splm+task_token(full_sequence)/distill_0.5/round_1/2025-02-05__10-47-53/checkpoints/best_model.pth
+  #
+  restart_optimizer: True
+
+encoder:
+  model_name: facebook/esm2_t33_650M_UR50D    #  esmc_600m  #facebook/esm2_t33_650M_UR50D # facebook/esm2_t33_650M_UR50D, facebook/esm2_t30_150M_UR50D, facebook/esm2_t12_35M_UR50D, facebook/esm2_t6_8M_UR50D, Rostlab/prot_t5_base_mt_uniref50
+  max_len: 1024
+  tune_embedding: False
+  adapter_h:
+    enable: True
+    num_end_adapter_layers: [12]
+    module_type: "MLP1"
+    freeze_adapter_layers: [True]
+  fine_tune:
+    enable: False
+    last_layers_trainable: 2
+    freeze_adapter_layers: [True]
+  lora:
+    enable: False
+    r: 2
+    lora_alpha: 8
+    lora_dropout: 0.05
+    esm_num_end_lora: 33
+  prompt:
+    enable: True
+    prompt_addition_enable: False
+    prompt_predefined_enable: True
+    prompt_len: 500   #todo  3
+    prompt_layer_indices: [0]
+    num_tasks: 13    #todo 4 19
+    task_token_path: ./new_uniprot_data/14-new_s_plm_task_token_cluster_embeddings_from_full_sequence/average
+    if_pass_to_MHA: False
+    if_attention_masks: False
+    if_weighted_skip_connection: False
+    if_grads: True
+  input_type: protein_sequence #peptide  or protein_sequence
+  num_classes: 2
+#  head_dropout: 0.3
+#  mlp_hidden_dim: 100
+#  mlp_layer_num: 2
+
+projector:
+  projector_type: CNN #or CNN or MLP or Transformer MHACustom
+  droprate: 0.75
+  kernel_sizes: [1,9,11]
+  out_channels: 200
+  output_dim: 2
+  inner_linear_dim: 128
+  num_layers: 2
+  mhc_number: 2
+  if_flattern: False
+  if_frozen: False
+  if_multihead: True
+
+task_specific_parameters:
+  if_frozen: False
+
+train_settings:
+  data_path: ./new_uniprot_data/7-final_csv/train/fold_0  #todo
+  num_epochs: 500
+  shuffle: True
+  loss: crossentropy # crossentropy or focal
+  sample_weight: False
+  mixed_precision: fp16 # no, fp16, bf16, fp8
+  device: cuda
+  batch_size: 6 #todo 6  64
+  num_workers: 0
+  grad_accumulation: 1
+
+valid_settings:
+  data_path:  ./new_uniprot_data/7-final_csv/valid/fold_0   #todo
+  do_every: 1
+  batch_size: 6
+  device: cuda
+  num_workers: 0
+
+test_settings:
+  data_path:  ./new_uniprot_data/7-final_csv/test   #todo
+  batch_size: 6
+  device: cuda
+  num_workers: 0
+
+optimizer:
+  name: adam
+  lr: 1e-6    #todo
+  weight_decouple: True
+  weight_decay: 1e-7
+  eps: 1e-16
+  beta_1: 0.9
+  beta_2: 0.999
+  use_8bit_adam: False
+  grad_clip_norm: 1
+  decay:
+    warmup: 128
+    min_lr: 8e-8   #0
+    gamma: 1
+    num_restarts: 1
+    first_cycle_steps: null # null or an integer number (ignore num_restarts)  #200
+
+tasks:   #todo 7
+
+  Phosphorylation_S: True
+  Phosphorylation_T: True
+  Phosphorylation_Y: True
+  Ubiquitination_K: True
+  Acetylation_K: True
+  OlinkedGlycosylation_S: True
+  Methylation_R: True
+  NlinkedGlycosylation_N: True
+  OlinkedGlycosylation_T: True
+  Methylation_K: True
+  Palmitoylation_C: True
+  Sumoylation_K: True
+  Succinylation_K: True
+
+
+task_ids:   #todo 8
+
+  Phosphorylation_S: 0
+  Phosphorylation_T: 1
+  Phosphorylation_Y: 2
+  Ubiquitination_K: 3
+  Acetylation_K: 4
+  OlinkedGlycosylation_S: 5
+  Methylation_R: 6
+  NlinkedGlycosylation_N: 7
+  OlinkedGlycosylation_T: 8
+  Methylation_K: 9
+  Palmitoylation_C: 10
+  Sumoylation_K: 11
+  Succinylation_K: 12
+  Acetylation_A: 0
+  Acetylation_M: 0
+
+
+bam:
+  model: student  #teacher or student
+  write_distill_outputs: False
+  teacher_annealing: False
+  teacher_distill_output_path: ./new_uniprot_data/16-splm_tasktoken(full_sequence)_distill_output/
+  distill_weight: 1   #todo 9
+  dataset_multiples: False
+  task_weight_exponent: 0.75
+
+
+
+
+
